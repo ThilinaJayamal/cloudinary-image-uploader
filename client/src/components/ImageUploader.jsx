@@ -2,19 +2,42 @@ import React, { useEffect, useRef, useState } from "react";
 import { ImagePlus } from 'lucide-react';
 import axios from "axios";
 
-function ImageUploader() {
+function ImageUploader({ setImage }) {
     const imageRef = useRef(null);
     const [preview, setPreview] = useState(null);
     const [uploading, setUploading] = useState(false);
+    const [dragging, setDragging] = useState(false);
 
     const handleClick = () => {
         imageRef.current?.click();
     };
 
+
+    // prevent web browser opens the file in a new tab
+    const handleDragOver = (e) => {
+        e.preventDefault(); // must preventDefault so drop works
+        setDragging(true);
+    };
+
+    const handleDragLeave = () => {
+        setDragging(false); // remove highlight
+    };
+
+
+    const handleDrop = async (e) => {
+        e.preventDefault(); // prevent browser from opening the file
+        const droppedFile = e.dataTransfer.files[0]; // get first file
+
+        if (!droppedFile) {
+            return null;
+        }
+        await handleUpload(droppedFile);
+    };
+
     const handleChange = async (e) => {
         const selectedFile = e.target.files[0];
         if (!selectedFile) {
-            return
+            return null;
         }
         await handleUpload(selectedFile);
     };
@@ -29,21 +52,25 @@ function ImageUploader() {
                 "http://localhost:3000/api/upload",
                 formData
             );
-            setPreview(data?.secure_url)
-            setUploading(false)
-            console.log(data)
+            setPreview(data?.secure_url);
+            setImage(data?.secure_url);
+            setUploading(false);
         } catch (error) {
-            setUploading(false)
-            console.log(error)
+            setUploading(false);
+            console.log(error);
         }
     }
 
     return (
         <div>
             <div
-                className="bg-green-100 rounded-md flex items-center shadow-sm
-            justify-center cursor-pointer overflow-hidden border border-green-200"
+                className={`bg-green-100 rounded-md flex items-center shadow-sm
+                justify-center cursor-pointer overflow-hidden border
+                ${dragging ? "border-green-400" : "border-green-200"}`}
                 onClick={handleClick}
+                onDrop={handleDrop}
+                onDragOver={handleDragOver}
+                onDragLeave={handleDragLeave}
             >
                 <input
                     type="file"
